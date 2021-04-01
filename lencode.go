@@ -1,5 +1,9 @@
 // Package lencode implements an encoder and decoder
-// for a stream of big-endian length prefixed messages.
+// for a stream of length prefixed messages.
+//
+// In default mode the length is encoded as a 4 byte
+// BigEndian integer. The endianness can be set via EndianOpt.
+//
 // Messages can optionally have a static record separator
 // for additional integrity checks.
 package lencode // import "github.com/psanford/lencode"
@@ -17,6 +21,7 @@ type Encoder struct {
 	separator []byte
 	lenBuf    [4]byte
 	err       error
+	byteOrder binary.ByteOrder
 }
 
 type Option struct {
@@ -38,6 +43,18 @@ func SeparatorOpt(s []byte) Option {
 	}
 }
 
+// Set encoder endianness. Defaults to binary.BigEndian.
+func EndianOpt(endian binary.ByteOrder) Option {
+	return Option{
+		encoderOpt: func(e *Encoder) {
+			e.byteOrder = endian
+		},
+		decoderOpt: func(e *Decoder) {
+			e.byteOrder = endian
+		},
+	}
+}
+
 var defaultSeparator = []byte{'l', 'e', 'n', 'c'}
 var separatorMismatchErr = errors.New("Separator mismatch")
 
@@ -45,6 +62,7 @@ func NewEncoder(w io.Writer, opts ...Option) *Encoder {
 	e := &Encoder{
 		w:         w,
 		separator: defaultSeparator,
+		byteOrder: binary.BigEndian,
 	}
 
 	for _, opt := range opts {
@@ -69,7 +87,7 @@ func (e *Encoder) Encode(msg []byte) error {
 		e.write(e.separator)
 	}
 
-	binary.BigEndian.PutUint32(e.lenBuf[:], uint32(len(msg)))
+	e.byteOrder.PutUint32(e.lenBuf[:], uint32(len(msg)))
 
 	e.write(e.lenBuf[:])
 	e.write(msg)
@@ -95,6 +113,7 @@ type Decoder struct {
 	separator []byte
 	prefixBuf []byte
 	err       error
+	byteOrder binary.ByteOrder
 
 	pendingPrefix bool
 	pendingLen    int
@@ -104,6 +123,7 @@ func NewDecoder(r io.Reader, opts ...Option) *Decoder {
 	d := &Decoder{
 		r:         r,
 		separator: defaultSeparator,
+		byteOrder: binary.BigEndian,
 	}
 
 	for _, opt := range opts {
@@ -144,6 +164,9 @@ func (d *Decoder) DecodeInto(b []byte) error {
 	}
 
 	if _, err := io.ReadFull(d.r, b[:d.pendingLen]); err != nil {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
 		d.err = err
 		return d.err
 	}
@@ -189,7 +212,7 @@ func (d *Decoder) readPrefix() error {
 		}
 	}
 
-	l := binary.BigEndian.Uint32(d.prefixBuf[len(d.separator):])
+	l := d.byteOrder.Uint32(d.prefixBuf[len(d.separator):])
 
 	d.pendingPrefix = true
 	d.pendingLen = int(l)
