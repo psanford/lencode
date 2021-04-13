@@ -78,7 +78,7 @@ func (e *Encoder) Encode(msg []byte) error {
 		return e.err
 	}
 
-	if len(msg) > math.MaxUint32 {
+	if len(msg) > math.MaxInt32 {
 		e.err = errors.New("Message too long to encode length in 4 bytes")
 		return e.err
 	}
