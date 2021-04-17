@@ -78,7 +78,8 @@ func (e *Encoder) Encode(msg []byte) error {
 		return e.err
 	}
 
-	if len(msg) > math.MaxInt32 {
+	msgLen := int64(len(msg))
+	if msgLen > math.MaxUint32 {
 		e.err = errors.New("Message too long to encode length in 4 bytes")
 		return e.err
 	}
@@ -87,7 +88,7 @@ func (e *Encoder) Encode(msg []byte) error {
 		e.write(e.separator)
 	}
 
-	e.byteOrder.PutUint32(e.lenBuf[:], uint32(len(msg)))
+	e.byteOrder.PutUint32(e.lenBuf[:], uint32(msgLen))
 
 	e.write(e.lenBuf[:])
 	e.write(msg)
