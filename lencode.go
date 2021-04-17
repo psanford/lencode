@@ -30,7 +30,7 @@ type Option struct {
 }
 
 // Specify a record separator to use as an integrity
-// check when decoding. This defaults to \x6c\x65\x6e\x63.
+// check when decoding. This defaults to \x6c\x65\x6e\x63 ("lenc").
 // Set to nil to disable.
 func SeparatorOpt(s []byte) Option {
 	return Option{
