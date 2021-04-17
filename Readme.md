@@ -72,7 +72,7 @@ func main() {
 		log.Fatalf("got:\n%s\nexpected:\n%s\n", dump, expect)
 	}
 
-    buf2 := bytes.NewBuffer([]byte{
+	buf2 := bytes.NewBuffer([]byte{
 		0, 0, 0, 5, 'h', 'e', 'l', 'l', 'o',
 		0, 0, 0, 5, 'w', 'o', 'r', 'l', 'd',
 	})
